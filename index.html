@@ -732,6 +732,10 @@
       .dyn-block[hidden] { display: none !important; }
       .dyn-stack { display: grid; gap: 1.2rem; }
       .ach-dyn-img { width: 84px; height: 84px; flex: none; object-fit: cover; border-radius: 13px; }
+      .dyn-photo { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 10px; }
+      .dyn-card-banner { width: 100%; aspect-ratio: 16/8; object-fit: cover; }
+      .dyn-thumb { width: 84px; height: 84px; flex: none; object-fit: cover; border-radius: 13px; }
+      .photo-preview { width: 96px; height: 96px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); margin-top: .5rem; }
       .dyn-gal-item { position: relative; }
       .dyn-gal-item .item-tools {
         position: absolute; inset-inline: .5rem; bottom: .5rem; margin: 0; z-index: 3;
@@ -1964,6 +1968,13 @@
             <input id="itemFile" type="file" />
             <p class="hint" id="itemFileHint"></p>
           </div>
+          <div class="fld" id="fldPhoto">
+            <label for="itemPhoto" id="itemPhotoLabel">عکس (اختیاري)</label>
+            <input id="itemPhoto" type="file" accept="image/*" />
+            <p class="hint" id="itemPhotoHint"></p>
+            <img id="itemPhotoPreview" class="photo-preview" alt="اوسنی عکس" hidden />
+            <p class="hint" id="itemPhotoCurrent" hidden>اوسنی عکس شته — که نوی عکس وټاکئ، هغه به یې ځای ونیسي.</p>
+          </div>
           <div class="fld" id="fldLink">
             <label for="itemLink">یا د ویډیو لینک (لکه یوټیوب)</label>
             <input id="itemLink" type="url" dir="ltr" placeholder="https://…" />
@@ -2231,6 +2242,21 @@
           s.className = 'dyn-date'; s.textContent = d;
           return s;
         }
+        function hasPhoto(it) { return !!(it.media_url && it.media_type !== 'video'); }
+        function photoImg(it, cls) {
+          var img = document.createElement('img');
+          if (cls) img.className = cls;
+          img.src = it.media_url;
+          img.alt = it.title || '';
+          img.loading = 'lazy'; img.decoding = 'async';
+          return img;
+        }
+        function personPhoto(it) {
+          var d = document.createElement('div');
+          d.className = 't-photo filled';
+          d.appendChild(photoImg(it, ''));
+          return d;
+        }
         function renderNews(items) {
           var grid = $('dynNewsGrid'), empty = $('dynNewsEmpty');
           if (!grid) return;
@@ -2242,6 +2268,7 @@
             var tag = document.createElement('span');
             tag.className = 'tag green'; tag.textContent = 'نوی';
             var h = document.createElement('h3'); h.textContent = it.title || '';
+            if (hasPhoto(it)) card.appendChild(photoImg(it, 'dyn-photo'));
             card.appendChild(tag); card.appendChild(h);
             if (it.body) { var p = document.createElement('p'); p.textContent = it.body; card.appendChild(p); }
             var ds = dateSpan(it.created_at); if (ds) card.appendChild(ds);
@@ -2323,6 +2350,7 @@
           items.forEach(function (it) {
             var card = document.createElement('article');
             card.className = 't-card dyn-card';
+            if (hasPhoto(it)) card.appendChild(personPhoto(it));
             var l1 = document.createElement('p');
             l1.className = 't-line';
             var b1 = document.createElement('b'); b1.textContent = 'نوم:';
@@ -2358,6 +2386,7 @@
             if (it.body) { var p = document.createElement('p'); p.textContent = it.body; body.appendChild(p); }
             var ds = dateSpan(it.created_at); if (ds) body.appendChild(ds);
             body.appendChild(toolsFor(it));
+            if (hasPhoto(it)) card.appendChild(photoImg(it, 'dyn-card-banner'));
             card.appendChild(top); card.appendChild(body);
             grid.appendChild(card);
           });
@@ -2376,6 +2405,7 @@
             if (it.body) { var p = document.createElement('p'); p.textContent = it.body; div.appendChild(p); }
             var ds = dateSpan(it.created_at); if (ds) div.appendChild(ds);
             div.appendChild(toolsFor(it));
+            if (hasPhoto(it)) card.appendChild(photoImg(it, 'dyn-thumb'));
             card.appendChild(div);
             grid.appendChild(card);
           });
@@ -2388,6 +2418,7 @@
           items.forEach(function (it) {
             var card = document.createElement('article');
             card.className = 'news-card dyn-card';
+            if (hasPhoto(it)) card.appendChild(personPhoto(it));
             var h = document.createElement('h3'); h.textContent = it.title || '';
             card.appendChild(h);
             if (it.body) { var p = document.createElement('p'); p.textContent = it.body; card.appendChild(p); }
@@ -2501,16 +2532,16 @@
 
         /* ---------- add / edit ---------- */
         var SECTION_CONF = {
-          news:    { addTitle: 'نوی اعلان اضافه کړئ', editTitle: 'اعلان سمول', body: true, bodyLabel: 'د اعلان متن', file: false, link: false },
+          news:    { addTitle: 'نوی اعلان اضافه کړئ', editTitle: 'اعلان سمول', body: true, bodyLabel: 'د اعلان متن', file: false, link: false, photo: true },
           gallery: { addTitle: 'نوی عکس اضافه کړئ', editTitle: 'عکس سمول', body: false, file: true, fileRequired: true, fileLabel: 'عکس وټاکئ', fileHint: 'JPG، PNG یا WebP عکس وټاکئ.', accept: 'image/*', mediaType: 'image' },
           videos:  { addTitle: 'نوې ویډیو اضافه کړئ', editTitle: 'ویډیو سمول', body: true, bodyLabel: 'تشریح (اختیاري)', file: true, fileRequired: true, fileLabel: 'ویډیو فایل وټاکئ', fileHint: 'MP4 ویډیو وټاکئ — یا لاندې د هغې لینک ورکړئ.', accept: 'video/*', link: true, mediaType: 'video' },
-          teachers: { addTitle: 'نوی ښوونکی اضافه کړئ', editTitle: 'ښوونکی سمول', titleLabel: 'نوم', body: true, bodyLabel: 'مضمون', file: false, link: false },
-          classes: { addTitle: 'نوی ټولګی اضافه کړئ', editTitle: 'ټولګی سمول', body: true, bodyLabel: 'تشریح', file: false, link: false },
-          subjects: { addTitle: 'نوی مضمون اضافه کړئ', editTitle: 'مضمون سمول', body: true, bodyLabel: 'تشریح (اختیاري)', file: false, link: false },
-          students: { addTitle: 'زده کوونکی / یادښت اضافه کړئ', editTitle: 'زده کوونکی / یادښت سمول', titleLabel: 'نوم / سرلیک', body: true, bodyLabel: 'معلومات', file: false, link: false },
-          exams: { addTitle: 'نوې ازموینه اضافه کړئ', editTitle: 'ازموینه سمول', body: true, bodyLabel: 'جزئیات (نېټه او نور)', file: false, link: false },
-          results: { addTitle: 'نوې پایله اضافه کړئ', editTitle: 'پایله سمول', body: true, bodyLabel: 'د پایلې متن', file: false, link: false },
-          achievements: { addTitle: 'نوې لاسته راوړنه اضافه کړئ', editTitle: 'لاسته راوړنه سمول', body: true, bodyLabel: 'تشریح', file: true, fileLabel: 'عکس (اختیاري)', fileHint: 'که وغواړئ، د لاسته راوړنې یو عکس وټاکئ — JPG، PNG یا WebP.', accept: 'image/*', mediaType: 'image' }
+          teachers: { addTitle: 'نوی ښوونکی اضافه کړئ', editTitle: 'ښوونکی سمول', titleLabel: 'نوم', body: true, bodyLabel: 'مضمون', file: false, link: false, photo: true, photoLabel: 'د ښوونکي عکس (اختیاري)' },
+          classes: { addTitle: 'نوی ټولګی اضافه کړئ', editTitle: 'ټولګی سمول', body: true, bodyLabel: 'تشریح', file: false, link: false, photo: true, photoLabel: 'د ټولګي عکس (اختیاري)' },
+          subjects: { addTitle: 'نوی مضمون اضافه کړئ', editTitle: 'مضمون سمول', body: true, bodyLabel: 'تشریح (اختیاري)', file: false, link: false, photo: true, photoLabel: 'عکس (اختیاري)' },
+          students: { addTitle: 'زده کوونکی / یادښت اضافه کړئ', editTitle: 'زده کوونکی / یادښت سمول', titleLabel: 'نوم / سرلیک', body: true, bodyLabel: 'معلومات', file: false, link: false, photo: true, photoLabel: 'د زده کوونکي عکس (اختیاري)' },
+          exams: { addTitle: 'نوې ازموینه اضافه کړئ', editTitle: 'ازموینه سمول', body: true, bodyLabel: 'جزئیات (نېټه او نور)', file: false, link: false, photo: true, photoLabel: 'عکس (اختیاري)' },
+          results: { addTitle: 'نوې پایله اضافه کړئ', editTitle: 'پایله سمول', body: true, bodyLabel: 'د پایلې متن', file: false, link: false, photo: true, photoLabel: 'عکس (اختیاري)' },
+          achievements: { addTitle: 'نوې لاسته راوړنه اضافه کړئ', editTitle: 'لاسته راوړنه سمول', body: true, bodyLabel: 'تشریح', file: false, link: false, photo: true, photoLabel: 'عکس (اختیاري)', photoHint: 'که وغواړئ، د لاسته راوړنې یو عکس وټاکئ — JPG، PNG یا WebP.' }
         };
         function openItemModal(section, item) {
           state.section = section;
@@ -2527,6 +2558,14 @@
           $('itemFileLabel').textContent = conf.fileLabel || 'فایل';
           $('itemFileHint').textContent = conf.fileHint || '';
           $('itemFile').accept = conf.accept || '';
+          $('fldPhoto').style.display = conf.photo ? '' : 'none';
+          $('itemPhoto').value = '';
+          $('itemPhotoLabel').textContent = conf.photoLabel || 'عکس (اختیاري)';
+          $('itemPhotoHint').textContent = conf.photoHint || 'که وغواړئ، یو عکس وټاکئ — JPG، PNG یا WebP. بې عکس هم خوندي کېږي.';
+          var hasPhoto = !!(item && conf.photo && item.media_url && item.media_type !== 'video');
+          $('itemPhotoPreview').hidden = !hasPhoto;
+          if (hasPhoto) { $('itemPhotoPreview').src = item.media_url; } else { $('itemPhotoPreview').removeAttribute('src'); }
+          $('itemPhotoCurrent').hidden = !hasPhoto;
           $('fldLink').style.display = conf.link ? '' : 'none';
           $('itemLink').value = (item && conf.link && item.media_url && !isStorageUrl(item.media_url)) ? item.media_url : '';
           $('itemErr').classList.remove('show');
@@ -2548,6 +2587,7 @@
           if (!title) { fail('مهرباني وکړئ سرلیک ولیکئ.'); return; }
           var body = conf.body ? $('itemBody').value.trim() : null;
           var file = ($('itemFile').files && $('itemFile').files[0]) || null;
+          var photoFile = (conf.photo && $('itemPhoto').files && $('itemPhoto').files[0]) || null;
           var link = conf.link ? $('itemLink').value.trim() : '';
           if (!editing && conf.fileRequired && !file && !link) {
             fail(section === 'gallery' ? 'مهرباني وکړئ یو عکس وټاکئ.' : 'مهرباني وکړئ ویډیو فایل وټاکئ یا یې لینک ورکړئ.');
@@ -2567,7 +2607,15 @@
               loadItems();
             }, function () { done(); fail('له سرور سره اړیکه ونه شوه. انټرنیټ وګورئ او بیا هڅه وکړئ.'); });
           }
-          if (file) {
+          if (photoFile) {
+            var pext = (photoFile.name.split('.').pop() || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            var ppath = section + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + (pext ? '.' + pext : '');
+            sb.storage.from('media').upload(ppath, photoFile, { upsert: false }).then(function (up) {
+              if (up.error) { done(); fail('عکس پورته نه شو. بیا هڅه وکړئ.'); return; }
+              var ppub = sb.storage.from('media').getPublicUrl(ppath);
+              save(ppub.data.publicUrl, 'image');
+            }, function () { done(); fail('عکس پورته نه شو. انټرنیټ وګورئ او بیا هڅه وکړئ.'); });
+          } else if (file) {
             var ext = (file.name.split('.').pop() || '').toLowerCase().replace(/[^a-z0-9]/g, '');
             var path = section + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + (ext ? '.' + ext : '');
             sb.storage.from('media').upload(path, file, { upsert: false }).then(function (up) {
