@@ -752,6 +752,52 @@
       .vid-body p { margin: .45rem 0 0; color: var(--ink-soft); font-size: .95rem; }
       @media (max-width: 700px) { .vid-grid { grid-template-columns: 1fr; } }
 
+      /* ---------- «نوی» badge (items added in the last 7 days) ---------- */
+      .new-badge {
+        display: inline-flex; align-items: center; align-self: flex-start;
+        background: var(--accent); color: #2a1c02; font-size: .78rem; font-weight: 800;
+        padding: .14rem .65rem; border-radius: 999px; line-height: 1.6;
+      }
+      .dyn-gal-item .new-badge.over {
+        position: absolute; top: .5rem; inset-inline-end: .5rem; z-index: 2;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
+      }
+
+      /* ---------- Site-wide search ---------- */
+      .search-row { padding: 0 0 .65rem; }
+      .search-box { position: relative; max-width: 620px; margin-inline: auto; }
+      .search-box > svg {
+        position: absolute; top: 50%; inset-inline-start: .95rem; transform: translateY(-50%);
+        width: 20px; height: 20px; color: var(--ink-soft); pointer-events: none;
+      }
+      .search-box input {
+        width: 100%; min-height: 48px; padding: .65rem 1rem; padding-inline-start: 2.9rem;
+        border: 1.5px solid var(--line); border-radius: 999px; background: var(--surface);
+        color: var(--ink); font: inherit; font-size: 1rem;
+      }
+      .search-box input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+      .search-results {
+        position: absolute; top: calc(100% + .45rem); inset-inline: 0; z-index: 90;
+        background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+        box-shadow: var(--shadow); max-height: min(62vh, 480px); overflow-y: auto; padding: .4rem;
+      }
+      .search-results[hidden] { display: none; }
+      .sr-item {
+        display: block; width: 100%; text-align: start; background: none; border: none; cursor: pointer;
+        padding: .6rem .7rem; border-radius: 10px; font: inherit; color: var(--ink);
+      }
+      .sr-item:hover, .sr-item:focus-visible { background: var(--brand-soft); }
+      .sr-top { display: flex; align-items: center; gap: .55rem; flex-wrap: wrap; }
+      .sr-title { font-weight: 700; font-size: 1rem; }
+      .sr-where {
+        font-size: .75rem; font-weight: 700; background: var(--brand-soft); color: var(--brand);
+        border-radius: 999px; padding: .08rem .6rem;
+      }
+      .sr-snip { display: block; margin-top: .2rem; font-size: .88rem; color: var(--ink-soft); line-height: 1.7; }
+      .sr-empty { padding: .9rem .8rem; color: var(--ink-soft); text-align: center; }
+      .search-hit { outline: 3px solid var(--accent) !important; outline-offset: 3px; }
+      @media print { .search-row { display: none !important; } }
+
       /* ---------- Admin modals ---------- */
       .modal {
         position: fixed; inset: 0; z-index: 120; background: rgba(5, 15, 10, .78);
@@ -844,6 +890,13 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
           د مدیر ننوتل
         </button>
+      </div>
+      <div class="wrap search-row">
+        <div class="search-box" role="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg>
+          <input id="siteSearch" type="search" placeholder="لټون… استاد، ټولګی، خبر، هر څه" aria-label="په ټول ویب سایټ کې لټون" autocomplete="off" />
+          <div class="search-results" id="searchResults" hidden></div>
+        </div>
       </div>
     </header>
 
@@ -2195,8 +2248,21 @@
         var SUPABASE_URL = 'https://xvicweyyjnyniidngnur.supabase.co';
         var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2aWN3ZXl5am55bmlpZG5nbnVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTU0Mzk3MzYsImV4cCI6MjExMTAxNTczNn0.MA6FYwIpFiIMneSpxUdFcOkdWn7tZe8IUskC18BgtQg';
         if (!window.supabase || !window.supabase.createClient) return;
+        // Password on every visit: first wipe any Supabase session an older
+        // version of this page stored in localStorage, then create the
+        // client with session persistence OFF, so the login never survives
+        // a reload or a reopened page — the password is asked every time.
+        try {
+          var staleKeys = [];
+          for (var li = 0; li < localStorage.length; li++) {
+            var lk = localStorage.key(li);
+            if (lk && (lk.indexOf('sb-') === 0 || lk.indexOf('supabase') !== -1)) staleKeys.push(lk);
+          }
+          staleKeys.forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} });
+        } catch (e) {}
         var sb;
-        try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON); } catch (e) { return; }
+        try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, { auth: { persistSession: false } }); } catch (e) { return; }
+        window.__manoDyn = [];
 
         // The login form asks for the password only; the admin account's
         // email is fixed here and is never shown anywhere in the page.
@@ -2226,11 +2292,11 @@
           eb.type = 'button'; eb.className = 'tool-btn'; eb.textContent = 'سمول';
           eb.addEventListener('click', function () { openItemModal(item.section, item); });
           var db = document.createElement('button');
-          db.type = 'button'; db.className = 'tool-btn danger'; db.textContent = 'حذف';
+          db.type = 'button'; db.className = 'tool-btn danger'; db.textContent = 'ړنګول';
           db.addEventListener('click', function () {
             if (db.dataset.armed) { doDelete(item); return; }
             db.dataset.armed = '1'; db.textContent = 'ډاډه یاست؟ بیا ټک وکړئ'; db.classList.add('confirm');
-            setTimeout(function () { db.dataset.armed = ''; db.textContent = 'حذف'; db.classList.remove('confirm'); }, 4000);
+            setTimeout(function () { db.dataset.armed = ''; db.textContent = 'ړنګول'; db.classList.remove('confirm'); }, 4000);
           });
           tools.appendChild(eb); tools.appendChild(db);
           return tools;
@@ -2240,6 +2306,20 @@
           if (!d) return null;
           var s = document.createElement('span');
           s.className = 'dyn-date'; s.textContent = d;
+          return s;
+        }
+        /* «نوی» badge: shown to every visitor on items added in the last 7 days */
+        function isNewItem(it) {
+          var t = Date.parse(it && it.created_at);
+          if (isNaN(t)) return false;
+          var age = Date.now() - t;
+          return age >= -3600000 && age <= 7 * 24 * 3600000;
+        }
+        function newBadge(it, over) {
+          if (!isNewItem(it)) return null;
+          var s = document.createElement('span');
+          s.className = 'new-badge' + (over ? ' over' : '');
+          s.textContent = 'نوی';
           return s;
         }
         function hasPhoto(it) { return !!(it.media_url && it.media_type !== 'video'); }
@@ -2265,11 +2345,11 @@
           items.forEach(function (it) {
             var card = document.createElement('article');
             card.className = 'news-card dyn-card';
-            var tag = document.createElement('span');
-            tag.className = 'tag green'; tag.textContent = 'نوی';
+            card.setAttribute('data-dyn-id', it.id);
             var h = document.createElement('h3'); h.textContent = it.title || '';
             if (hasPhoto(it)) card.appendChild(photoImg(it, 'dyn-photo'));
-            card.appendChild(tag); card.appendChild(h);
+            var nb = newBadge(it); if (nb) card.appendChild(nb);
+            card.appendChild(h);
             if (it.body) { var p = document.createElement('p'); p.textContent = it.body; card.appendChild(p); }
             var ds = dateSpan(it.created_at); if (ds) card.appendChild(ds);
             card.appendChild(toolsFor(it));
@@ -2285,6 +2365,7 @@
             if (!it.media_url) return;
             var wrap = document.createElement('div');
             wrap.className = 'dyn-gal-item';
+            wrap.setAttribute('data-dyn-id', it.id);
             var btn = document.createElement('button');
             btn.type = 'button'; btn.className = 'gal-item';
             btn.setAttribute('data-cap', it.title || '');
@@ -2299,6 +2380,7 @@
               lb.classList.add('open');
             });
             wrap.appendChild(btn);
+            var nb = newBadge(it, true); if (nb) wrap.appendChild(nb);
             wrap.appendChild(toolsFor(it));
             grid.appendChild(wrap);
           });
@@ -2311,7 +2393,8 @@
           empty.style.display = items.length ? 'none' : '';
           items.forEach(function (it) {
             var card = document.createElement('article');
-            card.className = 'vid-card';
+            card.className = 'vid-card dyn-card';
+            card.setAttribute('data-dyn-id', it.id);
             var frame = document.createElement('div');
             frame.className = 'vid-frame';
             var id = ytId(it.media_url);
@@ -2329,6 +2412,7 @@
             }
             var body = document.createElement('div');
             body.className = 'vid-body';
+            var nbv = newBadge(it); if (nbv) body.appendChild(nbv);
             var h = document.createElement('h3'); h.textContent = it.title || '';
             body.appendChild(h);
             if (it.body) { var p = document.createElement('p'); p.textContent = it.body; body.appendChild(p); }
@@ -2350,7 +2434,9 @@
           items.forEach(function (it) {
             var card = document.createElement('article');
             card.className = 't-card dyn-card';
+            card.setAttribute('data-dyn-id', it.id);
             if (hasPhoto(it)) card.appendChild(personPhoto(it));
+            var nbt = newBadge(it); if (nbt) card.appendChild(nbt);
             var l1 = document.createElement('p');
             l1.className = 't-line';
             var b1 = document.createElement('b'); b1.textContent = 'نوم:';
@@ -2377,10 +2463,12 @@
           items.forEach(function (it) {
             var card = document.createElement('article');
             card.className = 'class-card dyn-card';
+            card.setAttribute('data-dyn-id', it.id);
             var top = document.createElement('div');
             top.className = 'top';
             var b = document.createElement('b'); b.textContent = it.title || '';
             top.appendChild(b);
+            var nbc = newBadge(it); if (nbc) top.appendChild(nbc);
             var body = document.createElement('div');
             body.className = 'body';
             if (it.body) { var p = document.createElement('p'); p.textContent = it.body; body.appendChild(p); }
@@ -2399,7 +2487,9 @@
           items.forEach(function (it) {
             var card = document.createElement('article');
             card.className = 'exam-card dyn-card';
+            card.setAttribute('data-dyn-id', it.id);
             var div = document.createElement('div');
+            var nbe = newBadge(it); if (nbe) div.appendChild(nbe);
             var h = document.createElement('h3'); h.textContent = it.title || '';
             div.appendChild(h);
             if (it.body) { var p = document.createElement('p'); p.textContent = it.body; div.appendChild(p); }
@@ -2418,7 +2508,9 @@
           items.forEach(function (it) {
             var card = document.createElement('article');
             card.className = 'news-card dyn-card';
+            card.setAttribute('data-dyn-id', it.id);
             if (hasPhoto(it)) card.appendChild(personPhoto(it));
+            var nbs = newBadge(it); if (nbs) card.appendChild(nbs);
             var h = document.createElement('h3'); h.textContent = it.title || '';
             card.appendChild(h);
             if (it.body) { var p = document.createElement('p'); p.textContent = it.body; card.appendChild(p); }
@@ -2435,6 +2527,7 @@
           items.forEach(function (it) {
             var card = document.createElement('article');
             card.className = 'ach-card dyn-card';
+            card.setAttribute('data-dyn-id', it.id);
             if (it.media_url) {
               var img = document.createElement('img');
               img.className = 'ach-dyn-img'; img.src = it.media_url;
@@ -2442,6 +2535,7 @@
               card.appendChild(img);
             }
             var div = document.createElement('div');
+            var nba = newBadge(it); if (nba) div.appendChild(nba);
             var h = document.createElement('h3'); h.textContent = it.title || '';
             div.appendChild(h);
             if (it.body) { var p = document.createElement('p'); p.textContent = it.body; div.appendChild(p); }
@@ -2468,7 +2562,12 @@
         function loadItems() {
           sb.from('items').select('*').order('created_at', { ascending: false }).then(function (res) {
             if (res.error || !res.data) return;
-            state.rows = res.data;
+            // Newest first, guaranteed on the client too: the most recently
+            // added item always sits at the TOP of its section.
+            state.rows = res.data.slice().sort(function (a, b) {
+              return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+            });
+            window.__manoDyn = state.rows;
             renderAll();
           }, function () { /* offline: keep the graceful empty states */ });
         }
@@ -2643,6 +2742,159 @@
         }
 
         loadItems();
+      })();
+    </script>
+
+    <!-- Site-wide search: finds everything on the page — the static
+         sections and cards, plus the dynamic items the admin script above
+         exposes as window.__manoDyn. Works for every visitor, no login. -->
+    <script>
+      (function () {
+        var input = document.getElementById('siteSearch');
+        var box = document.getElementById('searchResults');
+        if (!input || !box) return;
+        var SECTION_LABELS = {
+          home: 'کور پاڼه', about: 'زموږ په اړه', principal: 'د ښوونځي مدیر',
+          leadership: 'ادارې ټیم', news: 'خبرتیاوې', classes: 'ټولګي او مضامین',
+          teachers: 'ښوونکي', students: 'زده کوونکي', facilities: 'اسانتیاوې',
+          gallery: 'ګالري', videos: 'ویډیوګانې', activities: 'غونډې او فعالیتونه',
+          achievements: 'لاسته راوړنې', graduates: 'فارغین او کانکور',
+          admission: 'داخله', exams: 'ازموینې او رخصتي', contact: 'اړیکه'
+        };
+        var DYN_LABELS = {
+          news: 'خبرتیاوې', gallery: 'ګالري', videos: 'ویډیوګانې', teachers: 'ښوونکي',
+          classes: 'ټولګي', subjects: 'مضامین', students: 'زده کوونکي',
+          exams: 'ازموینې', results: 'پایلې', achievements: 'لاسته راوړنې'
+        };
+        var DYN_ANCHOR = {
+          news: 'news', gallery: 'gallery', videos: 'videos', teachers: 'teachers',
+          classes: 'classes', subjects: 'classes', students: 'students',
+          exams: 'exams', results: 'exams', achievements: 'achievements'
+        };
+        function norm(s) {
+          return String(s || '')
+            .replace(/ي/g, 'ی').replace(/ك/g, 'ک').replace(/ة/g, 'ه')
+            .replace(/ؤ/g, 'و').replace(/[إأ]/g, 'ا').replace(/ى/g, 'ی')
+            .replace(/\s+/g, ' ').trim().toLowerCase();
+        }
+        function clean(s) { return String(s || '').replace(/\s+/g, ' ').trim(); }
+
+        /* Static index: one entry per section (its heading + full text) and
+           one per static card inside it (principal, head teacher, deputy,
+           the printed teacher cards, classes, facilities, steps…). Dynamic
+           cards are skipped here — they are indexed from __manoDyn instead. */
+        var staticIndex = null;
+        function buildStaticIndex() {
+          var entries = [];
+          var cardSel = '.t-card, .class-card, .news-card, .exam-card, .ach-card, .profile-card, .fac, .step, .tl-box, .gal-item, .strip-item, .info-row';
+          document.querySelectorAll('main section[id]').forEach(function (sec) {
+            var label = SECTION_LABELS[sec.id] || '';
+            var head = sec.querySelector('h1, h2');
+            var secTitle = head ? clean(head.textContent) : '';
+            entries.push({ title: secTitle || label, where: label, text: norm(sec.textContent), el: sec });
+            sec.querySelectorAll(cardSel).forEach(function (card) {
+              if (card.classList.contains('dyn-card')) return;
+              if (card.closest && card.closest('[id^="dyn"]')) return;
+              var h = card.querySelector('h3, h4, b, .t-line');
+              var t = h ? clean(h.textContent).replace(/^نوم:\s*/, '') : '';
+              if (!t) t = clean(card.textContent).slice(0, 60);
+              entries.push({ title: t, where: label, text: norm(card.textContent), el: card });
+            });
+          });
+          return entries;
+        }
+        function dynEntries() {
+          var rows = window.__manoDyn || [];
+          var out = [];
+          for (var i = 0; i < rows.length; i++) {
+            var it = rows[i];
+            out.push({
+              title: clean(it.title) || (DYN_LABELS[it.section] || ''),
+              where: DYN_LABELS[it.section] || '',
+              text: norm((it.title || '') + ' ' + (it.body || '')),
+              dynId: it.id, anchor: DYN_ANCHOR[it.section]
+            });
+          }
+          return out;
+        }
+        function snippetFor(e, q) {
+          var t = e.text, i = t.indexOf(q);
+          if (i === -1) return t.length > 110 ? t.slice(0, 110) + '…' : t;
+          var start = Math.max(0, i - 35);
+          var end = i + q.length + 75;
+          return (start > 0 ? '…' : '') + t.slice(start, end) + (end < t.length ? '…' : '');
+        }
+        function closeBox() { box.hidden = true; box.innerHTML = ''; }
+        function goTo(entry) {
+          var el = entry.el || null;
+          if (entry.dynId != null && entry.dynId !== undefined) {
+            el = document.querySelector('[data-dyn-id="' + entry.dynId + '"]');
+            if (!el && entry.anchor) el = document.getElementById(entry.anchor);
+          }
+          closeBox();
+          input.blur();
+          if (!el) return;
+          var header = document.getElementById('topbar');
+          var hh = header ? header.offsetHeight : 0;
+          var y = el.getBoundingClientRect().top + window.pageYOffset - hh - 10;
+          window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+          el.classList.add('search-hit');
+          setTimeout(function () { el.classList.remove('search-hit'); }, 2600);
+        }
+        function run() {
+          var q = norm(input.value);
+          if (q.length < 2) { closeBox(); return; }
+          if (!staticIndex) staticIndex = buildStaticIndex();
+          var all = staticIndex.concat(dynEntries());
+          var hits = [];
+          for (var i = 0; i < all.length; i++) {
+            var e = all[i];
+            var inTitle = norm(e.title).indexOf(q) !== -1;
+            if (inTitle || e.text.indexOf(q) !== -1) hits.push({ e: e, inTitle: inTitle });
+          }
+          hits.sort(function (a, b) { return (b.inTitle ? 1 : 0) - (a.inTitle ? 1 : 0); });
+          hits = hits.slice(0, 14);
+          box.innerHTML = '';
+          if (!hits.length) {
+            var d = document.createElement('div');
+            d.className = 'sr-empty';
+            d.textContent = 'هېڅ ونه موندل شو — بل ټکی وازمایئ.';
+            box.appendChild(d);
+          } else {
+            hits.forEach(function (h) {
+              var b = document.createElement('button');
+              b.type = 'button'; b.className = 'sr-item';
+              var top = document.createElement('span'); top.className = 'sr-top';
+              var tt = document.createElement('span'); tt.className = 'sr-title'; tt.textContent = h.e.title;
+              top.appendChild(tt);
+              if (h.e.where) {
+                var w = document.createElement('span'); w.className = 'sr-where'; w.textContent = h.e.where;
+                top.appendChild(w);
+              }
+              b.appendChild(top);
+              var sn = snippetFor(h.e, q);
+              if (sn) {
+                var sp = document.createElement('span'); sp.className = 'sr-snip'; sp.textContent = sn;
+                b.appendChild(sp);
+              }
+              b.addEventListener('click', function () { goTo(h.e); });
+              box.appendChild(b);
+            });
+          }
+          box.hidden = false;
+        }
+        input.addEventListener('input', run);
+        input.addEventListener('focus', function () { if (norm(input.value).length >= 2) run(); });
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') {
+            var first = box.querySelector('.sr-item');
+            if (first && !box.hidden) { e.preventDefault(); first.click(); }
+          } else if (e.key === 'Escape') { closeBox(); }
+        });
+        document.addEventListener('click', function (e) {
+          var wrap = input.closest ? input.closest('.search-box') : null;
+          if (wrap && !wrap.contains(e.target)) closeBox();
+        });
       })();
     </script>
   </body>
