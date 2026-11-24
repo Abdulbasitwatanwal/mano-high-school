@@ -324,6 +324,8 @@
       .class-card p { margin: 0 0 .8rem; color: var(--ink-soft); font-size: .96rem; }
       .chips { display: flex; flex-wrap: wrap; gap: .4rem; }
       .chips span { background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: .1rem .65rem; font-size: .85rem; }
+      .chips a { background: var(--brand-soft); border: 1px solid var(--brand); color: var(--brand-deep); border-radius: 999px; padding: .1rem .65rem; font-size: .85rem; font-weight: 700; text-decoration: none; }
+      .chips a:hover { background: var(--brand); color: #fff; }
 
       /* ---------- Teachers / departments ---------- */
       .dept-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.2rem; }
@@ -727,6 +729,9 @@
         text-align: center; color: var(--ink-soft); background: var(--surface); margin: 0;
       }
       .dyn-date { display: block; margin-top: .6rem; font-size: .82rem; color: var(--ink-soft); }
+      .dyn-block[hidden] { display: none !important; }
+      .dyn-stack { display: grid; gap: 1.2rem; }
+      .ach-dyn-img { width: 84px; height: 84px; flex: none; object-fit: cover; border-radius: 13px; }
       .dyn-gal-item { position: relative; }
       .dyn-gal-item .item-tools {
         position: absolute; inset-inline: .5rem; bottom: .5rem; margin: 0; z-index: 3;
@@ -820,6 +825,7 @@
             <li><a href="#news">خبرتیاوې</a></li>
             <li><a href="#classes">ټولګي</a></li>
             <li><a href="#teachers">ښوونکي</a></li>
+            <li id="navStudentsLi"><a href="#students">زده کوونکي</a></li>
             <li><a href="#gallery">ګالري</a></li>
             <li><a href="#videos">ویډیوګانې</a></li>
             <li><a href="#activities">غونډې</a></li>
@@ -842,7 +848,7 @@
       <div class="wrap admin-bar-in">
         <span class="who">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-          تاسو د مدیر په توګه ننوتلي یاست — اوس کولای شئ اعلانونه، عکسونه او ویډیوګانې اضافه، سمې او حذف کړئ.
+          تاسو د مدیر په توګه ننوتلي یاست — اوس کولای شئ د ټولو برخو (اعلانونه، ښوونکي، ټولګي، مضامین، زده کوونکي، ازموینې، پایلې، لاسته راوړنې، عکسونه او ویډیوګانې) مواد اضافه، سم او حذف کړئ.
         </span>
         <button type="button" class="logout-btn" id="adminLogoutBtn">وتل</button>
       </div>
@@ -1292,9 +1298,27 @@
               <div class="top"><b>دولسم ټولګی</b><span>د فراغت کال</span></div>
               <div class="body">
                 <p>د فراغت کال کې د ټولو مضمونونو تکرار، د کانکور چمتووالی او د راتلونکي تحصیلي لارې لارښوونه کېږي.</p>
-                <div class="chips"><span>د کانکور چمتووالی</span><span>تکراري درسونه</span><span>مشوره او لارښوونه</span><span>د فراغت اسناد</span></div>
+                <div class="chips"><a href="#graduates">د کانکور چمتووالی</a><span>تکراري درسونه</span><span>مشوره او لارښوونه</span><span>د فراغت اسناد</span></div>
               </div>
             </article>
+          </div>
+
+          <!-- Dynamic classes (Supabase, managed by the admin) -->
+          <div class="dyn-block" id="dynClassesBlock" hidden>
+            <div class="dyn-head"><h3>نوي ټولګي</h3></div>
+            <div class="class-grid" id="dynClassesGrid"></div>
+          </div>
+          <div class="add-row admin-only">
+            <button type="button" class="btn btn-brand" data-add="classes">+ نوی ټولګی اضافه کړئ</button>
+          </div>
+
+          <!-- Dynamic subjects (Supabase, managed by the admin) -->
+          <div class="dyn-block" id="dynSubjectsBlock" hidden>
+            <div class="dyn-head"><h3>نوي مضامین</h3></div>
+            <div class="class-grid" id="dynSubjectsGrid"></div>
+          </div>
+          <div class="add-row admin-only">
+            <button type="button" class="btn btn-brand" data-add="subjects">+ نوی مضمون اضافه کړئ</button>
           </div>
         </div>
       </section>
@@ -1454,6 +1478,31 @@
               <p class="t-line"><b>مضمون:</b> بیولوژي</p>
             </article>
           </div>
+
+          <!-- Dynamic teachers (Supabase, managed by the admin) -->
+          <div class="dyn-block" id="dynTeachersBlock" hidden>
+            <div class="dyn-head"><h3>نوي ښوونکي</h3></div>
+            <div class="t-grid" id="dynTeachersGrid"></div>
+          </div>
+          <div class="add-row admin-only">
+            <button type="button" class="btn btn-brand" data-add="teachers">+ نوی ښوونکی اضافه کړئ</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Students (Supabase items managed by the admin; visible to everyone,
+           only add / edit / delete is admin-only) -->
+      <section id="students">
+        <div class="wrap">
+          <div class="sec-head">
+            <h2>زده کوونکي</h2>
+            <p>د لېسې د زده کوونکو په اړه معلومات او یادښتونه دلته خپرېږي.</p>
+          </div>
+          <p class="dyn-empty" id="dynStudentsEmpty">تر اوسه د زده کوونکو کوم معلومات نشته.</p>
+          <div class="news-grid" id="dynStudentsGrid"></div>
+          <div class="add-row admin-only">
+            <button type="button" class="btn btn-brand" data-add="students">+ زده کوونکی / یادښت اضافه کړئ</button>
+          </div>
         </div>
       </section>
 
@@ -1589,6 +1638,15 @@
             </div>
             <figcaption>د لېسې ممتاز شاګردان د ستاینې پر مهال</figcaption>
           </figure>
+
+          <!-- Dynamic achievements (Supabase, managed by the admin) -->
+          <div class="dyn-block" id="dynAchievementsBlock" hidden>
+            <div class="dyn-head"><h3>نوي لاسته راوړنې</h3></div>
+            <div class="dyn-stack" id="dynAchievementsGrid"></div>
+          </div>
+          <div class="add-row admin-only">
+            <button type="button" class="btn btn-brand" data-add="achievements">+ نوې لاسته راوړنه اضافه کړئ</button>
+          </div>
         </div>
       </section>
 
@@ -1717,6 +1775,23 @@
             </div>
           </article>
           <p class="cal-note rv">یادونه: پورته ټولې نېټې او میاشتې د هجري شمسي کال له مخې دي. د ازموینو د پایلو په اړه معلومات به په خپل وخت د لېسې د ادارې له خوا شریک شي.</p>
+          <!-- Dynamic exams (Supabase, managed by the admin) -->
+          <div class="dyn-block" id="dynExamsBlock" hidden>
+            <div class="dyn-head"><h3>نوي ازموینې</h3></div>
+            <div class="exam-grid" id="dynExamsGrid"></div>
+          </div>
+          <div class="add-row admin-only">
+            <button type="button" class="btn btn-brand" data-add="exams">+ نوې ازموینه اضافه کړئ</button>
+          </div>
+
+          <!-- Dynamic results (Supabase, managed by the admin) -->
+          <div class="dyn-block" id="dynResultsBlock" hidden>
+            <div class="dyn-head"><h3>پایلې</h3></div>
+            <div class="exam-grid" id="dynResultsGrid"></div>
+          </div>
+          <div class="add-row admin-only">
+            <button type="button" class="btn btn-brand" data-add="results">+ نوې پایله اضافه کړئ</button>
+          </div>
         </div>
       </section>
 
@@ -1857,10 +1932,6 @@
         <form id="loginForm" novalidate>
           <p class="form-err" id="loginErr" role="alert"></p>
           <div class="fld">
-            <label for="loginEmail">بریښنالیک</label>
-            <input id="loginEmail" type="email" autocomplete="username" dir="ltr" required />
-          </div>
-          <div class="fld">
             <label for="loginPass">پاسورډ</label>
             <input id="loginPass" type="password" autocomplete="current-password" dir="ltr" required />
           </div>
@@ -1881,7 +1952,7 @@
           <p class="form-err" id="itemErr" role="alert"></p>
           <p class="form-ok" id="itemOk" role="status"></p>
           <div class="fld">
-            <label for="itemTitle">سرلیک</label>
+            <label for="itemTitle" id="itemTitleLabel">سرلیک</label>
             <input id="itemTitle" type="text" required />
           </div>
           <div class="fld" id="fldBody">
@@ -1928,13 +1999,14 @@
 
         // Announcement filter
         var filterBtns = document.querySelectorAll('.filters button');
-        var cards = document.querySelectorAll('.news-card');
         filterBtns.forEach(function (btn) {
           btn.addEventListener('click', function () {
             filterBtns.forEach(function (b) { b.classList.remove('on'); });
             btn.classList.add('on');
             var f = btn.getAttribute('data-filter');
-            cards.forEach(function (card) {
+            // Re-query on every click so announcements the admin added
+            // later (dynamic cards) are filtered together with the rest.
+            document.querySelectorAll('#news .news-card').forEach(function (card) {
               card.hidden = !(f === 'all' || card.getAttribute('data-cat') === f);
             });
           });
@@ -2054,7 +2126,7 @@
 
         // Active nav link
         var navLinks = document.querySelectorAll('nav.main a');
-        var sections = ['home', 'about', 'principal', 'leadership', 'news', 'classes', 'teachers', 'gallery', 'activities', 'achievements', 'graduates', 'admission', 'exams', 'contact']
+        var sections = ['home', 'about', 'principal', 'leadership', 'news', 'classes', 'teachers', 'students', 'gallery', 'activities', 'achievements', 'graduates', 'admission', 'exams', 'contact']
           .map(function (id) { return document.getElementById(id); }).filter(Boolean);
         if ('IntersectionObserver' in window) {
           var so = new IntersectionObserver(function (entries) {
@@ -2102,7 +2174,8 @@
       })();
     </script>
 
-    <!-- Supabase: admin login + live dynamic sections (news / gallery / videos).
+    <!-- Supabase: admin login + live dynamic sections (news, teachers, classes,
+         subjects, students, exams, results, achievements, gallery, videos).
          If the CDN or the backend is unreachable, everything below quietly
          does nothing and the static page keeps working exactly as before. -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -2114,7 +2187,10 @@
         var sb;
         try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON); } catch (e) { return; }
 
-        var state = { admin: false, section: 'news', editing: null };
+        // The login form asks for the password only; the admin account's
+        // email is fixed here and is never shown anywhere in the page.
+        var ADMIN_EMAIL = 'malakzaiabdulbasit@gmail.com';
+        var state = { admin: false, section: 'news', editing: null, rows: [] };
 
         function $(id) { return document.getElementById(id); }
         function fmtDate(iso) {
@@ -2235,13 +2311,134 @@
             grid.appendChild(card);
           });
         }
+        function showBlock(blockId, items) {
+          var b = $(blockId);
+          if (b) b.hidden = !(items.length || state.admin);
+        }
+        function renderTeachers(items) {
+          var grid = $('dynTeachersGrid');
+          if (!grid) return;
+          showBlock('dynTeachersBlock', items);
+          grid.innerHTML = '';
+          items.forEach(function (it) {
+            var card = document.createElement('article');
+            card.className = 't-card dyn-card';
+            var l1 = document.createElement('p');
+            l1.className = 't-line';
+            var b1 = document.createElement('b'); b1.textContent = 'نوم:';
+            l1.appendChild(b1);
+            l1.appendChild(document.createTextNode(' ' + (it.title || '')));
+            card.appendChild(l1);
+            if (it.body) {
+              var l2 = document.createElement('p');
+              l2.className = 't-line';
+              var b2 = document.createElement('b'); b2.textContent = 'مضمون:';
+              l2.appendChild(b2);
+              l2.appendChild(document.createTextNode(' ' + it.body));
+              card.appendChild(l2);
+            }
+            card.appendChild(toolsFor(it));
+            grid.appendChild(card);
+          });
+        }
+        function renderClassCards(gridId, blockId, items) {
+          var grid = $(gridId);
+          if (!grid) return;
+          showBlock(blockId, items);
+          grid.innerHTML = '';
+          items.forEach(function (it) {
+            var card = document.createElement('article');
+            card.className = 'class-card dyn-card';
+            var top = document.createElement('div');
+            top.className = 'top';
+            var b = document.createElement('b'); b.textContent = it.title || '';
+            top.appendChild(b);
+            var body = document.createElement('div');
+            body.className = 'body';
+            if (it.body) { var p = document.createElement('p'); p.textContent = it.body; body.appendChild(p); }
+            var ds = dateSpan(it.created_at); if (ds) body.appendChild(ds);
+            body.appendChild(toolsFor(it));
+            card.appendChild(top); card.appendChild(body);
+            grid.appendChild(card);
+          });
+        }
+        function renderExamCards(gridId, blockId, items) {
+          var grid = $(gridId);
+          if (!grid) return;
+          showBlock(blockId, items);
+          grid.innerHTML = '';
+          items.forEach(function (it) {
+            var card = document.createElement('article');
+            card.className = 'exam-card dyn-card';
+            var div = document.createElement('div');
+            var h = document.createElement('h3'); h.textContent = it.title || '';
+            div.appendChild(h);
+            if (it.body) { var p = document.createElement('p'); p.textContent = it.body; div.appendChild(p); }
+            var ds = dateSpan(it.created_at); if (ds) div.appendChild(ds);
+            div.appendChild(toolsFor(it));
+            card.appendChild(div);
+            grid.appendChild(card);
+          });
+        }
+        function renderStudents(items) {
+          var grid = $('dynStudentsGrid'), empty = $('dynStudentsEmpty');
+          if (!grid) return;
+          grid.innerHTML = '';
+          if (empty) empty.style.display = items.length ? 'none' : '';
+          items.forEach(function (it) {
+            var card = document.createElement('article');
+            card.className = 'news-card dyn-card';
+            var h = document.createElement('h3'); h.textContent = it.title || '';
+            card.appendChild(h);
+            if (it.body) { var p = document.createElement('p'); p.textContent = it.body; card.appendChild(p); }
+            var ds = dateSpan(it.created_at); if (ds) card.appendChild(ds);
+            card.appendChild(toolsFor(it));
+            grid.appendChild(card);
+          });
+        }
+        function renderAchievements(items) {
+          var grid = $('dynAchievementsGrid');
+          if (!grid) return;
+          showBlock('dynAchievementsBlock', items);
+          grid.innerHTML = '';
+          items.forEach(function (it) {
+            var card = document.createElement('article');
+            card.className = 'ach-card dyn-card';
+            if (it.media_url) {
+              var img = document.createElement('img');
+              img.className = 'ach-dyn-img'; img.src = it.media_url;
+              img.alt = it.title || 'لاسته راوړنه'; img.loading = 'lazy'; img.decoding = 'async';
+              card.appendChild(img);
+            }
+            var div = document.createElement('div');
+            var h = document.createElement('h3'); h.textContent = it.title || '';
+            div.appendChild(h);
+            if (it.body) { var p = document.createElement('p'); p.textContent = it.body; div.appendChild(p); }
+            var ds = dateSpan(it.created_at); if (ds) div.appendChild(ds);
+            div.appendChild(toolsFor(it));
+            card.appendChild(div);
+            grid.appendChild(card);
+          });
+        }
+        function bySection(rows, key) { return rows.filter(function (i) { return i.section === key; }); }
+        function renderAll() {
+          var rows = state.rows || [];
+          renderNews(bySection(rows, 'news'));
+          renderGallery(bySection(rows, 'gallery'));
+          renderVideos(bySection(rows, 'videos'));
+          renderTeachers(bySection(rows, 'teachers'));
+          renderClassCards('dynClassesGrid', 'dynClassesBlock', bySection(rows, 'classes'));
+          renderClassCards('dynSubjectsGrid', 'dynSubjectsBlock', bySection(rows, 'subjects'));
+          renderStudents(bySection(rows, 'students'));
+          renderExamCards('dynExamsGrid', 'dynExamsBlock', bySection(rows, 'exams'));
+          renderExamCards('dynResultsGrid', 'dynResultsBlock', bySection(rows, 'results'));
+          renderAchievements(bySection(rows, 'achievements'));
+        }
         function loadItems() {
           sb.from('items').select('*').order('created_at', { ascending: false }).then(function (res) {
             if (res.error || !res.data) return;
-            var rows = res.data;
-            renderNews(rows.filter(function (i) { return i.section === 'news'; }));
-            renderGallery(rows.filter(function (i) { return i.section === 'gallery'; }));
-            renderVideos(rows.filter(function (i) { return i.section === 'videos'; }));
+            state.rows = res.data;
+            renderAll();
           }, function () { /* offline: keep the graceful empty states */ });
         }
 
@@ -2249,6 +2446,7 @@
         function setAdmin(on) {
           state.admin = !!on;
           document.body.classList.toggle('is-admin', !!on);
+          renderAll();
         }
         try {
           sb.auth.getSession().then(function (r) { setAdmin(r.data && r.data.session); }, function () {});
@@ -2280,12 +2478,12 @@
           var btn = $('loginSubmit');
           btn.disabled = true; btn.textContent = 'مهرباني وکړئ…';
           sb.auth.signInWithPassword({
-            email: $('loginEmail').value.trim(),
+            email: ADMIN_EMAIL,
             password: $('loginPass').value
           }).then(function (res) {
             btn.disabled = false; btn.textContent = 'ننوتل';
             if (res.error) {
-              err.textContent = 'ننوتل ناکام شول — بریښنالیک یا پاسورډ سم نه دی. بیا هڅه وکړئ.';
+              err.textContent = 'ننوتل ناکام شول — پاسورډ سم نه دی. بیا هڅه وکړئ.';
               err.classList.add('show');
               return;
             }
@@ -2304,14 +2502,22 @@
         /* ---------- add / edit ---------- */
         var SECTION_CONF = {
           news:    { addTitle: 'نوی اعلان اضافه کړئ', editTitle: 'اعلان سمول', body: true, bodyLabel: 'د اعلان متن', file: false, link: false },
-          gallery: { addTitle: 'نوی عکس اضافه کړئ', editTitle: 'عکس سمول', body: false, file: true, fileLabel: 'عکس وټاکئ', fileHint: 'JPG، PNG یا WebP عکس وټاکئ.', accept: 'image/*', mediaType: 'image' },
-          videos:  { addTitle: 'نوې ویډیو اضافه کړئ', editTitle: 'ویډیو سمول', body: true, bodyLabel: 'تشریح (اختیاري)', file: true, fileLabel: 'ویډیو فایل وټاکئ', fileHint: 'MP4 ویډیو وټاکئ — یا لاندې د هغې لینک ورکړئ.', accept: 'video/*', link: true, mediaType: 'video' }
+          gallery: { addTitle: 'نوی عکس اضافه کړئ', editTitle: 'عکس سمول', body: false, file: true, fileRequired: true, fileLabel: 'عکس وټاکئ', fileHint: 'JPG، PNG یا WebP عکس وټاکئ.', accept: 'image/*', mediaType: 'image' },
+          videos:  { addTitle: 'نوې ویډیو اضافه کړئ', editTitle: 'ویډیو سمول', body: true, bodyLabel: 'تشریح (اختیاري)', file: true, fileRequired: true, fileLabel: 'ویډیو فایل وټاکئ', fileHint: 'MP4 ویډیو وټاکئ — یا لاندې د هغې لینک ورکړئ.', accept: 'video/*', link: true, mediaType: 'video' },
+          teachers: { addTitle: 'نوی ښوونکی اضافه کړئ', editTitle: 'ښوونکی سمول', titleLabel: 'نوم', body: true, bodyLabel: 'مضمون', file: false, link: false },
+          classes: { addTitle: 'نوی ټولګی اضافه کړئ', editTitle: 'ټولګی سمول', body: true, bodyLabel: 'تشریح', file: false, link: false },
+          subjects: { addTitle: 'نوی مضمون اضافه کړئ', editTitle: 'مضمون سمول', body: true, bodyLabel: 'تشریح (اختیاري)', file: false, link: false },
+          students: { addTitle: 'زده کوونکی / یادښت اضافه کړئ', editTitle: 'زده کوونکی / یادښت سمول', titleLabel: 'نوم / سرلیک', body: true, bodyLabel: 'معلومات', file: false, link: false },
+          exams: { addTitle: 'نوې ازموینه اضافه کړئ', editTitle: 'ازموینه سمول', body: true, bodyLabel: 'جزئیات (نېټه او نور)', file: false, link: false },
+          results: { addTitle: 'نوې پایله اضافه کړئ', editTitle: 'پایله سمول', body: true, bodyLabel: 'د پایلې متن', file: false, link: false },
+          achievements: { addTitle: 'نوې لاسته راوړنه اضافه کړئ', editTitle: 'لاسته راوړنه سمول', body: true, bodyLabel: 'تشریح', file: true, fileLabel: 'عکس (اختیاري)', fileHint: 'که وغواړئ، د لاسته راوړنې یو عکس وټاکئ — JPG، PNG یا WebP.', accept: 'image/*', mediaType: 'image' }
         };
         function openItemModal(section, item) {
           state.section = section;
           state.editing = item || null;
           var conf = SECTION_CONF[section];
           $('itemModalTitle').textContent = item ? conf.editTitle : conf.addTitle;
+          $('itemTitleLabel').textContent = conf.titleLabel || 'سرلیک';
           $('itemTitle').value = item ? (item.title || '') : '';
           $('itemBody').value = item ? (item.body || '') : '';
           $('itemFile').value = '';
@@ -2343,7 +2549,7 @@
           var body = conf.body ? $('itemBody').value.trim() : null;
           var file = ($('itemFile').files && $('itemFile').files[0]) || null;
           var link = conf.link ? $('itemLink').value.trim() : '';
-          if (!editing && conf.file && !file && !link) {
+          if (!editing && conf.fileRequired && !file && !link) {
             fail(section === 'gallery' ? 'مهرباني وکړئ یو عکس وټاکئ.' : 'مهرباني وکړئ ویډیو فایل وټاکئ یا یې لینک ورکړئ.');
             return;
           }
